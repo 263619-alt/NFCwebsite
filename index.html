@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>번쩍 퀴즈</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#1b1340; --stage:#2a1c5e; --sand:#fdf3df; --coral:#ff4d66;
+    --mint:#4fe0bd; --sun:#ffc93c; --grape:#b06bff; --dim:#b3a5e0;
+    --page:#150e33; --ink:var(--sand);
+  }
+  @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ --page:#f0e6ff } }
+  :root[data-theme="light"]{ --page:#f0e6ff } :root[data-theme="dark"]{ --page:#150e33 }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;min-height:100vh;background:var(--page);color:var(--ink);
+    font-family:"Noto Sans KR",system-ui,"Malgun Gothic",sans-serif;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  body::before{
+    content:"";position:fixed;inset:-30%;z-index:-1;
+    background:
+      radial-gradient(38% 38% at 20% 25%, #ff4d66 0%, transparent 60%),
+      radial-gradient(34% 34% at 80% 20%, #ffc93c 0%, transparent 60%),
+      radial-gradient(40% 40% at 78% 80%, #4fe0bd 0%, transparent 62%),
+      radial-gradient(36% 36% at 22% 82%, #b06bff 0%, transparent 60%),
+      radial-gradient(30% 30% at 50% 50%, #3ba7ff 0%, transparent 65%);
+    filter:blur(30px);opacity:.75;
+    animation:drift 26s ease-in-out infinite alternate;
+  }
+  @keyframes drift{
+    0%{transform:translate(0,0) scale(1) rotate(0deg)}
+    50%{transform:translate(3%,-3%) scale(1.12) rotate(6deg)}
+    100%{transform:translate(-3%,2%) scale(1.05) rotate(-5deg)}
+  }
+  .stage{
+    width:100%;max-width:640px;background:rgba(27,19,64,.9);
+    backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.14);
+    border-radius:30px;padding:34px 28px 30px;
+    box-shadow:0 26px 70px rgba(10,5,35,.5);
+    min-height:560px;display:flex;flex-direction:column;
+  }
+  h1,h2,.big,.opt-key,.count,.lvl-n,.tick,.score,.q{font-family:"Jua",system-ui,sans-serif;font-weight:400}
+  .screen{display:none;flex:1;flex-direction:column}
+  .screen.on{display:flex}
+  button{font-family:inherit;cursor:pointer;border:0}
+  button:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+
+  /* 시작 */
+  #home{align-items:center;justify-content:center;text-align:center}
+  .bolt{font-size:clamp(70px,20vw,110px);line-height:1}
+  #home h1{font-size:clamp(32px,9vw,46px);margin:6px 0 0}
+  #home p{color:var(--dim);margin:12px 0 30px;font-size:15px;line-height:1.7}
+  .start{
+    font-family:"Jua",sans-serif;font-size:24px;color:var(--night);
+    background:var(--sun);border-radius:999px;padding:16px 56px;
+    box-shadow:0 8px 0 #d29b13;transition:transform .12s,box-shadow .12s;
+  }
+  .start:active{transform:translateY(5px);box-shadow:0 3px 0 #d29b13}
+
+  /* 선택 화면 */
+  .pick{align-items:center;justify-content:center;text-align:center}
+  .pick h2{font-size:26px;margin:0 0 6px}
+  .pick .sub{color:var(--dim);font-size:14px;margin:0 0 26px}
+  .levels{display:grid;gap:12px;width:100%;max-width:380px}
+  .lvl{
+    display:flex;align-items:center;gap:14px;text-align:left;
+    background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.14);
+    border-radius:18px;padding:15px 18px;color:var(--sand);
+    transition:background .15s,border-color .15s,transform .12s;
+  }
+  .lvl:hover{background:rgba(255,255,255,.14)}
+  .lvl:active{transform:scale(.98)}
+  .lvl[data-l="1"]:hover{border-color:var(--mint)}
+  .lvl[data-l="2"]:hover{border-color:var(--sun)}
+  .lvl[data-l="3"]:hover{border-color:var(--coral)}
+  .lvl-n{font-size:30px;width:34px;text-align:center;flex:none}
+  .lvl[data-l="1"] .lvl-n{color:var(--mint)} .lvl[data-l="2"] .lvl-n{color:var(--sun)} .lvl[data-l="3"] .lvl-n{color:var(--coral)}
+  .lvl b{display:block;font-size:17px;font-weight:700}
+  .lvl span{font-size:12.5px;color:var(--dim)}
+  .counts{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;width:100%;max-width:340px}
+  .count{
+    background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.14);
+    border-radius:18px;padding:20px 0;font-size:30px;line-height:1;color:var(--sand);
+    transition:background .15s,border-color .15s,transform .12s;
+  }
+  .count span{display:block;font-family:"Noto Sans KR",sans-serif;font-size:12px;color:var(--dim);margin-top:8px}
+  .count:hover{background:rgba(79,224,189,.16);border-color:var(--mint)}
+  .count:active{transform:scale(.97)}
+  .back{background:none;color:var(--dim);font-size:13px;margin-top:24px;text-decoration:underline}
+
+  /* 퀴즈 */
+  .hud{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--dim)}
+  .hud b{font-family:"Jua",sans-serif;font-size:17px;color:var(--sand);font-weight:400}
+  .tag{padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.12);font-size:12px}
+  .mid{display:flex;align-items:center;justify-content:center;gap:18px;margin:16px 0 6px}
+  .pic{
+    width:96px;height:96px;flex:none;border-radius:24px;display:grid;place-items:center;
+    font-size:52px;background:linear-gradient(140deg,var(--grape),var(--coral));
+    box-shadow:0 10px 26px rgba(0,0,0,.3);
+  }
+  .timer-wrap{position:relative;display:grid;place-items:center;width:112px;height:112px;flex:none}
+  svg.ring{transform:rotate(-90deg);position:absolute}
+  .ring-bg{fill:none;stroke:rgba(255,255,255,.14);stroke-width:8}
+  .ring-fg{fill:none;stroke:var(--mint);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .25s linear,stroke .2s}
+  .tick{font-size:54px;line-height:1;color:var(--mint);transition:color .2s}
+  .tick.low,.ring-fg.low{color:var(--coral);stroke:var(--coral)}
+  .q{font-size:clamp(19px,5.2vw,25px);line-height:1.45;text-align:center;margin:12px 0 20px;min-height:72px;display:flex;align-items:center;justify-content:center}
+  .opts{display:grid;gap:10px;margin-top:auto}
+  .opt{
+    display:flex;align-items:center;gap:12px;text-align:left;
+    background:rgba(255,255,255,.07);color:var(--sand);
+    border:2px solid rgba(255,255,255,.13);border-radius:14px;
+    padding:13px 16px;font-size:16px;transition:background .15s,border-color .15s;
+  }
+  .opt-key{flex:none;width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.14);color:var(--dim);display:grid;place-items:center;font-size:14px}
+  .opt:hover:not(:disabled){background:rgba(255,255,255,.14)}
+  .opt:disabled{cursor:default}
+  .opt.right{background:rgba(79,224,189,.22);border-color:var(--mint)}
+  .opt.right .opt-key{background:var(--mint);color:var(--night)}
+  .opt.wrong{background:rgba(255,77,102,.2);border-color:var(--coral)}
+  .opt.wrong .opt-key{background:var(--coral);color:#fff}
+  .verdict{text-align:center;font-family:"Jua",sans-serif;font-size:17px;height:24px;margin-top:13px;color:var(--dim)}
+
+  /* 결과 */
+  #result{align-items:center;text-align:center;justify-content:center}
+  .score{font-size:clamp(58px,18vw,96px);line-height:1;color:var(--sun)}
+  .score small{font-size:.32em;color:var(--dim)}
+  #result h2{font-size:25px;margin:10px 0 4px}
+  #result .msg{color:var(--dim);font-size:14.5px;margin:0 0 22px}
+  .review{width:100%;max-width:460px;text-align:left;margin-bottom:22px;max-height:230px;overflow-y:auto;padding-right:8px}
+  .review div{font-size:13px;line-height:1.65;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.1);color:var(--dim)}
+  .review .qq{color:var(--sand);font-weight:700}
+  .review .mark{color:var(--coral);margin-right:6px;font-family:"Jua",sans-serif}
+  .review .mark.o{color:var(--mint)}
+  .review em{font-style:normal;color:var(--sun)}
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+  @media (max-width:430px){
+    .stage{padding:24px 16px 22px}
+    .pic{width:76px;height:76px;font-size:40px;border-radius:20px}
+    .mid{gap:12px}
+  }
+</style>
+</head>
+<body>
+<main class="stage">
+
+  <section id="home" class="screen on">
+    <div class="bolt">⚡</div>
+    <h1>번쩍 퀴즈</h1>
+    <p>레벨이 올라갈수록 문제는 어려워지고<br>주어지는 시간은 짧아집니다.</p>
+    <button class="start" id="btnStart">시작하기</button>
+  </section>
+
+  <section id="levels" class="screen pick">
+    <h2>레벨을 고르세요</h2>
+    <p class="sub">레벨마다 난이도와 제한 시간이 다릅니다</p>
+    <div class="levels">
+      <button class="lvl" data-l="1"><span class="lvl-n">1</span><span><b>몸풀기 · 7초</b><span>누구나 아는 상식</span></span></button>
+      <button class="lvl" data-l="2"><span class="lvl-n">2</span><span><b>진짜 상식 · 5초</b><span>알 듯 말 듯한 문제</span></span></button>
+      <button class="lvl" data-l="3"><span class="lvl-n">3</span><span><b>함정 지대 · 3초</b><span>헷갈리는 보기만 모았습니다</span></span></button>
+    </div>
+    <button class="back" id="btnHome">처음으로</button>
+  </section>
+
+  <section id="setup" class="screen pick">
+    <h2>몇 문제 푸실래요?</h2>
+    <p class="sub" id="setupSub"></p>
+    <div class="counts">
+      <button class="count" data-n="5">5<span>가볍게</span></button>
+      <button class="count" data-n="10">10<span>기본</span></button>
+      <button class="count" data-n="15">15<span>도전</span></button>
+      <button class="count" data-n="20">20<span>끝까지</span></button>
+    </div>
+    <button class="back" id="btnBackLvl">레벨 다시 고르기</button>
+  </section>
+
+  <section id="quiz" class="screen">
+    <div class="hud">
+      <span class="tag" id="lvlTag">레벨 1</span>
+      <span>문제 <b id="qNum">1</b> / <span id="qTotal">5</span></span>
+      <span>맞힌 개수 <b id="qScore">0</b></span>
+    </div>
+    <div class="mid">
+      <div class="pic" id="pic">❓</div>
+      <div class="timer-wrap">
+        <svg class="ring" width="112" height="112" viewBox="0 0 112 112" aria-hidden="true">
+          <circle class="ring-bg" cx="56" cy="56" r="50"></circle>
+          <circle class="ring-fg" id="ring" cx="56" cy="56" r="50" stroke-dasharray="314.16"></circle>
+        </svg>
+        <div class="tick" id="tick">5</div>
+      </div>
+    </div>
+    <p class="q" id="qText"></p>
+    <div class="opts" id="opts"></div>
+    <div class="verdict" id="verdict"></div>
+  </section>
+
+  <section id="result" class="screen">
+    <div class="score"><span id="rScore">0</span><small>/<span id="rTotal">5</span></small></div>
+    <h2 id="rTitle"></h2>
+    <p class="msg" id="rMsg"></p>
+    <div class="review" id="review"></div>
+    <button class="start" id="btnAgain">다시 풀기</button>
+  </section>
+
+</main>
+
+<script>
+/* [질문, [보기4], 정답index, 해설, 그림] */
+const BANK = {
+1:[
+["대한민국의 수도는 어디일까요?",["서울","부산","인천","대전"],0,"1394년 조선 태조가 한양으로 도읍을 옮긴 뒤 지금까지 이어지고 있습니다.","🏙️"],
+["물의 화학식은 무엇일까요?",["H₂O","CO₂","O₂","NaCl"],0,"수소 원자 2개와 산소 원자 1개가 결합한 분자입니다.","💧"],
+["태양계에서 가장 큰 행성은?",["목성","토성","지구","해왕성"],0,"지름이 지구의 약 11배로, 나머지 행성을 다 합친 것보다 무겁습니다.","🪐"],
+["한글을 창제한 조선의 왕은?",["세종대왕","태종","정조","영조"],0,"1443년에 창제해 1446년 훈민정음이라는 이름으로 반포했습니다.","📜"],
+["축구 한 팀이 경기장에 서는 인원은?",["11명","9명","10명","12명"],0,"골키퍼 1명과 필드 플레이어 10명으로 구성됩니다.","⚽"],
+["세계에서 가장 높은 산은?",["에베레스트","K2","킬리만자로","몽블랑"],0,"해발 약 8,849m로 네팔과 티베트 국경에 있습니다.","🏔️"],
+["무지개는 보통 몇 가지 색으로 말할까요?",["7가지","5가지","6가지","8가지"],0,"뉴턴이 빨·주·노·초·파·남·보 일곱 색으로 정리한 관습이 굳어졌습니다.","🌈"],
+["1kg은 몇 g일까요?",["1000g","100g","10000g","500g"],0,"킬로(k)는 1000배를 뜻하는 접두어입니다.","⚖️"],
+["삼각형 세 내각의 합은?",["180도","90도","270도","360도"],0,"평면 위 모든 삼각형에서 항상 성립합니다.","📐"],
+["지구에서 가장 넓은 바다는?",["태평양","대서양","인도양","북극해"],0,"지구 표면의 약 3분의 1을 차지합니다.","🌊"],
+["물이 어는 온도는 섭씨 몇 도일까요?",["0도","10도","-10도","100도"],0,"1기압에서 0도에 얼고 100도에 끓습니다.","🧊"],
+["지구의 유일한 자연 위성은?",["달","금성","화성","태양"],0,"약 38만 km 떨어져 지구를 돌고 있습니다.","🌙"],
+["일본의 수도는?",["도쿄","오사카","교토","나고야"],0,"1868년 교토에서 에도(현 도쿄)로 옮겨졌습니다.","🗼"],
+["한 시간은 몇 초일까요?",["3600초","600초","1800초","7200초"],0,"60초 × 60분 = 3600초입니다.","⏰"],
+["육지에서 가장 빠르게 달리는 동물은?",["치타","사자","말","타조"],0,"짧은 거리에서 시속 100km 이상까지 낼 수 있습니다.","🐆"],
+["산소의 원소 기호는?",["O","Os","Ox","On"],0,"라틴어 Oxygenium의 첫 글자에서 왔습니다.","🫧"],
+["올림픽은 몇 년마다 열릴까요?",["4년","2년","3년","5년"],0,"하계와 동계가 2년씩 엇갈려 열립니다.","🏅"],
+["피라미드로 가장 유명한 나라는?",["이집트","그리스","이탈리아","인도"],0,"기자의 대피라미드가 대표적입니다.","🐫"],
+["식물이 빛으로 양분을 만드는 과정은?",["광합성","호흡","증산","발효"],0,"엽록체가 빛으로 물과 이산화탄소를 포도당으로 바꿉니다.","🌱"],
+["1년은 보통 며칠일까요?",["365일","360일","366일","350일"],0,"4년마다 하루를 더한 윤년은 366일입니다.","📅"]
+],
+2:[
+["현존하는 가장 오래된 금속활자 인쇄본은?",["직지심체요절","팔만대장경","훈민정음 해례본","삼국사기"],0,"1377년 청주 흥덕사에서 찍었고, 구텐베르크보다 78년 앞섭니다.","📖"],
+["DNA의 이중나선 구조를 밝힌 과학자는?",["왓슨과 크릭","멘델","다윈","파스퇴르"],0,"1953년 발표했고, 로절린드 프랭클린의 X선 사진이 결정적 단서였습니다.","🧬"],
+["조선시대 측우기로 잰 것은?",["강우량","기온","바람의 세기","습도"],0,"1441년에 만들어진 세계에서 이른 시기의 표준 강우량계입니다.","🌧️"],
+["빛의 속도는 대략 초속 얼마일까요?",["약 30만 km","약 3만 km","약 300만 km","약 3천 km"],0,"정확히는 진공에서 299,792,458 m/s입니다.","💡"],
+["소금의 정식 화학 명칭은?",["염화나트륨","탄산칼슘","황산구리","질산은"],0,"나트륨(Na)과 염소(Cl)가 결합한 NaCl입니다.","🧂"],
+["피타고라스 정리가 성립하는 도형은?",["직각삼각형","정삼각형","정사각형","원"],0,"직각을 낀 두 변의 제곱 합이 빗변의 제곱과 같습니다.","📏"],
+["소리가 가장 빠르게 전달되는 곳은?",["고체","액체","기체","진공"],0,"입자가 촘촘할수록 진동이 잘 전달됩니다. 진공에서는 아예 전달되지 않습니다.","🔊"],
+["태양과 가장 가까운 행성은?",["수성","금성","지구","화성"],0,"다만 표면이 가장 뜨거운 행성은 두꺼운 대기를 가진 금성입니다.","☀️"],
+["모나리자를 그린 화가는?",["레오나르도 다빈치","미켈란젤로","라파엘로","보티첼리"],0,"현재 파리 루브르 박물관에 있습니다.","🖼️"],
+["컴퓨터가 사용하는 2진법의 숫자는?",["0과 1","1과 2","0부터 9","0과 2"],0,"전기가 흐르거나 흐르지 않는 두 상태로 표현하기 때문입니다.","💻"],
+["미국의 수도는?",["워싱턴 D.C.","뉴욕","로스앤젤레스","보스턴"],0,"어느 주에도 속하지 않는 특별구입니다.","🗽"],
+["임진왜란에서 수군을 이끈 장군은?",["이순신","권율","강감찬","김유신"],0,"명량해전에서 13척으로 일본 함대를 막아냈습니다.","⚓"],
+["인체에서 가장 넓은 기관은?",["피부","간","폐","소장"],0,"성인 기준 약 1.5~2㎡, 무게는 체중의 약 16%입니다.","🖐️"],
+["프랑스 대혁명이 일어난 해는?",["1789년","1776년","1815년","1848년"],0,"바스티유 감옥 습격으로 시작됐습니다.","🇫🇷"],
+["혈액에서 산소를 운반하는 성분은?",["헤모글로빈","백혈구","혈소판","인슐린"],0,"적혈구 속 철을 품은 단백질이라 피가 붉게 보입니다.","🩸"],
+["원주율(π)의 근삿값은?",["약 3.14","약 2.71","약 1.61","약 4.13"],0,"2.71은 자연상수 e, 1.61은 황금비입니다.","⭕"],
+["세포에서 에너지를 만드는 소기관은?",["미토콘드리아","리보솜","골지체","엽록체"],0,"'세포의 발전소'라 불리며 ATP를 생산합니다.","🔬"],
+["조선을 건국한 인물은?",["이성계","이방원","정도전","왕건"],0,"1392년 즉위해 태조가 되었습니다. 왕건은 고려를 세웠습니다.","👑"],
+["지구의 자전 방향은?",["서에서 동","동에서 서","북에서 남","남에서 북"],0,"그래서 해가 동쪽에서 떠서 서쪽으로 집니다.","🌍"],
+["저장 용량이 가장 큰 단위는?",["TB","GB","MB","KB"],0,"KB < MB < GB < TB 순으로 각각 약 1000배씩 커집니다.","💾"]
+],
+3:[
+["세계에서 가장 넓은 사막은?",["남극 사막","사하라 사막","고비 사막","아라비아 사막"],0,"사막의 기준은 모래가 아니라 강수량입니다. 남극은 세계 최대의 한랭 사막입니다.","🏜️"],
+["토마토는 식물학적으로 무엇일까요?",["과일(열매)","채소","뿌리","곡물"],0,"씨방이 자란 열매라 식물학상 과일이지만, 요리와 세법에서는 채소로 다룹니다.","🍅"],
+["대한민국에서 가장 긴 강은?",["낙동강","한강","금강","섬진강"],0,"낙동강이 약 510km로 한강(약 494km)보다 깁니다.","🏞️"],
+["아인슈타인이 노벨물리학상을 받은 업적은?",["광전효과","특수상대성이론","일반상대성이론","질량-에너지 등가"],0,"1921년 수상 사유는 상대성이론이 아니라 광전효과 설명이었습니다.","🧠"],
+["오스트레일리아의 수도는?",["캔버라","시드니","멜버른","퍼스"],0,"시드니와 멜버른이 다투다 두 도시 사이에 새 수도를 세웠습니다.","🦘"],
+["튀르키예(터키)의 수도는?",["앙카라","이스탄불","이즈미르","안탈리아"],0,"1923년 공화국 수립과 함께 앙카라로 옮겼습니다.","🕌"],
+["자이언트판다가 속한 분류군은?",["식육목","설치목","영장목","우제목"],0,"대나무를 먹지만 소화기관은 여전히 육식동물의 것입니다.","🐼"],
+["빛의 삼원색에 들어가지 않는 색은?",["노랑","빨강","초록","파랑"],0,"빛은 빨강·초록·파랑입니다. 노랑은 물감의 삼원색에 들어갑니다.","🎨"],
+["세계에서 가장 작은 나라는?",["바티칸 시국","모나코","산마리노","리히텐슈타인"],0,"면적 약 0.44㎢로 여의도보다 훨씬 작습니다.","⛪"],
+["별의 밝기 등급에 대한 설명으로 옳은 것은?",["숫자가 작을수록 밝다","숫자가 클수록 밝다","0등급이 가장 어둡다","음수 등급은 없다"],0,"1등성이 6등성보다 약 100배 밝고, 시리우스는 -1.46등급입니다.","✨"],
+["지구에서 가장 깊은 곳은?",["마리아나 해구","동해","그랜드캐니언","바이칼호"],0,"챌린저 해연이 약 10,900m로, 에베레스트를 거꾸로 넣어도 잠깁니다.","🌊"],
+["소금을 넣은 물의 어는점은 순수한 물보다?",["낮다","높다","같다","끓는점만 바뀐다"],0,"녹은 물질이 얼음 형성을 방해합니다. 겨울 도로에 염화칼슘을 뿌리는 이유입니다.","❄️"],
+["고래는 어디에 속할까요?",["포유류","어류","양서류","파충류"],0,"허파로 숨 쉬고 새끼를 낳아 젖을 먹입니다. 상어가 어류입니다.","🐋"],
+["인류 최초로 달에 착륙한 우주선은?",["아폴로 11호","아폴로 13호","스푸트니크 1호","보스토크 1호"],0,"1969년 7월, 아폴로 13호는 사고로 착륙하지 못하고 돌아왔습니다.","🚀"],
+["일본에서 가장 큰 섬은?",["혼슈","홋카이도","규슈","시코쿠"],0,"도쿄·오사카·교토가 모두 혼슈에 있습니다.","🗾"],
+["알파고를 만든 회사는?",["딥마인드","오픈AI","IBM","마이크로소프트"],0,"영국 딥마인드가 개발했고 2014년 구글에 인수됐습니다.","🤖"],
+["헝가리의 수도는?",["부다페스트","부쿠레슈티","베오그라드","브라티슬라바"],0,"부다와 페스트라는 두 도시가 1873년에 합쳐진 이름입니다.","🏛️"],
+["캐나다의 수도는?",["오타와","토론토","밴쿠버","몬트리올"],0,"영어권과 프랑스어권 사이 절충으로 정해진 도시입니다.","🍁"],
+["에디슨이 백열전구에 대해 실제로 한 일은?",["오래 쓰도록 개량해 실용화","세계 최초로 발명","전기를 발견","형광등을 발명"],0,"전구 자체는 그 전에도 있었고, 에디슨은 수명을 크게 늘려 상용화했습니다.","💡"],
+["1기압에서 물의 끓는점이 100도라면, 높은 산에서는?",["100도보다 낮다","100도보다 높다","똑같다","끓지 않는다"],0,"기압이 낮아 더 낮은 온도에서 끓고, 그래서 밥이 설익습니다.","⛰️"]
+]};
+
+const LEVEL = {1:{t:7,name:"레벨 1 · 몸풀기"},2:{t:5,name:"레벨 2 · 진짜 상식"},3:{t:3,name:"레벨 3 · 함정 지대"}};
+const CIRC = 2 * Math.PI * 50;
+const $ = id => document.getElementById(id);
+let level=1, limit=5, deck=[], idx=0, score=0, total=5, log=[], timer=null, left=5, locked=false;
+
+/* ── 효과음 ── */
+let ac = null;
+function audio(){ if(!ac) ac = new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==='suspended') ac.resume(); return ac }
+function beep(freq, start, dur, type='triangle', vol=.22){
+  const c = audio(), o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, c.currentTime + start);
+  g.gain.setValueAtTime(0, c.currentTime + start);
+  g.gain.linearRampToValueAtTime(vol, c.currentTime + start + .02);
+  g.gain.exponentialRampToValueAtTime(.001, c.currentTime + start + dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(c.currentTime + start); o.stop(c.currentTime + start + dur + .05);
+}
+const sfxRight = () => { beep(784,0,.12); beep(1046,.09,.16); beep(1318,.18,.3) };
+const sfxWrong = () => { beep(200,0,.2,'sawtooth',.18); beep(140,.14,.35,'sawtooth',.18) };
+const sfxTimeUp = () => { beep(330,0,.15,'square',.15); beep(220,.12,.3,'square',.15) };
+const sfxTick   = () => beep(880,0,.05,'sine',.08);
+const sfxEnd    = () => { beep(523,0,.14); beep(659,.12,.14); beep(784,.24,.14); beep(1046,.36,.4) };
+
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id===id)) }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]] } return a }
+
+$('btnStart').onclick = () => { audio(); show('levels') };
+$('btnHome').onclick = () => show('home');
+$('btnBackLvl').onclick = () => show('levels');
+$('btnAgain').onclick = () => show('levels');
+document.querySelectorAll('.lvl').forEach(b => b.onclick = () => {
+  level = +b.dataset.l; limit = LEVEL[level].t;
+  $('setupSub').textContent = `${LEVEL[level].name} · 문제당 ${limit}초`;
+  show('setup');
+});
+document.querySelectorAll('.count').forEach(b => b.onclick = () => begin(+b.dataset.n));
+
+function begin(n){
+  total = n; idx = 0; score = 0; log = [];
+  /* 한 판 안에서 문제가 겹치지 않도록 섞은 뒤 앞에서 n개만 사용 */
+  deck = shuffle(BANK[level].slice()).slice(0, n).map(q => {
+    const pairs = q[1].map((t,i) => ({t, ok:i===q[2]}));
+    shuffle(pairs);
+    return { q:q[0], opts:pairs, ans:pairs.findIndex(p=>p.ok), why:q[3], pic:q[4] };
+  });
+  $('qTotal').textContent = n;
+  $('lvlTag').textContent = LEVEL[level].name;
+  show('quiz');
+  render();
+}
+
+function render(){
+  const item = deck[idx];
+  locked = false; left = limit;
+  $('qNum').textContent = idx+1;
+  $('qScore').textContent = score;
+  $('qText').textContent = item.q;
+  $('pic').textContent = item.pic;
+  $('verdict').textContent = '';
+  const box = $('opts'); box.innerHTML = '';
+  item.opts.forEach((o,i) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = `<span class="opt-key">${i+1}</span><span>${o.t}</span>`;
+    b.onclick = () => pick(i);
+    box.appendChild(b);
+  });
+  paint();
+  timer = setInterval(() => {
+    left--; paint();
+    if(left > 0 && left <= 2) sfxTick();
+    if(left <= 0) pick(-1);
+  }, 1000);
+}
+
+function paint(){
+  const low = left <= 2;
+  $('tick').textContent = Math.max(left,0);
+  $('tick').classList.toggle('low', low);
+  $('ring').classList.toggle('low', low);
+  $('ring').style.strokeDashoffset = CIRC * (1 - Math.max(left,0)/limit);
+}
+
+function pick(i){
+  if(locked) return;
+  locked = true; clearInterval(timer);
+  const item = deck[idx], ok = i === item.ans;
+  [...$('opts').children].forEach((b,n) => {
+    b.disabled = true;
+    if(n === item.ans) b.classList.add('right');
+    if(n === i && !ok) b.classList.add('wrong');
+  });
+  if(ok){ score++; $('verdict').textContent='정답!'; sfxRight() }
+  else if(i === -1){ $('verdict').textContent='시간 초과'; sfxTimeUp() }
+  else { $('verdict').textContent='오답'; sfxWrong() }
+  $('qScore').textContent = score;
+  log.push({ q:item.q, a:item.opts[item.ans].t, why:item.why, pic:item.pic, ok });
+  setTimeout(() => { idx++; idx < total ? render() : finish() }, 1150);
+}
+
+function finish(){
+  sfxEnd();
+  const rate = score/total;
+  $('rScore').textContent = score;
+  $('rTotal').textContent = total;
+  $('rTitle').textContent = rate===1 ? '전부 정답' : rate>=.7 ? '꽤 잘 아시네요' : rate>=.4 ? '절반은 건졌습니다' : '해설부터 보고 가세요';
+  $('rMsg').textContent = `${LEVEL[level].name} · ${total}문제 중 ${score}개 정답`;
+  $('review').innerHTML = log.map(l =>
+    `<div><span class="mark ${l.ok?'o':''}">${l.ok?'O':'X'}</span>${l.pic} <span class="qq">${l.q}</span><br>정답 <em>${l.a}</em><br>${l.why}</div>`
+  ).join('');
+  show('result');
+}
+
+document.addEventListener('keydown', e => {
+  if(!$('quiz').classList.contains('on') || locked) return;
+  const n = parseInt(e.key,10);
+  if(n>=1 && n<=4) pick(n-1);
+});
+</script>
+</body>
+</html>
